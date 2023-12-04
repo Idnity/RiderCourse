@@ -1,4 +1,5 @@
 #include "Character.h"
+#include "Prop.h"
 #include "raylib.h"
 #include "raymath.h"
 
@@ -21,10 +22,17 @@ int main()
     
     // MAP
     Texture2D TWorldMap = LoadTexture("nature_tileset/WorldMap.png");
-    Vector2 map_pos{0.f,0.f};
+    Vector2 map_pos{};
+    const float map_scale{4.f};
 
-    Character knight;
-    knight.SetScreenPos(window_settings.width, window_settings.height);
+
+    // INSTANCES
+    Character knight{window_settings.width, window_settings.height};
+    Prop props[2]
+    {
+        Prop{{600.f,300.f},LoadTexture("nature_tileset/Rock.png")},
+        Prop{{400.f,500.f},LoadTexture("nature_tileset/Log.png")}
+    };
     
     // GAME LOOP
     while (!WindowShouldClose())
@@ -35,10 +43,33 @@ int main()
         // GAME LOGIC
         knight.tick(GetFrameTime());
 
-        // DRAW
-        DrawTextureEx(TWorldMap, Vector2Scale(knight.GetWorldPos(), -1.f), 0.f, 4.f, WHITE);
-        knight.draw();
+        // CHECK MAP BOUNDS
+        if (knight.GetWorldPos().x < 0.f ||
+            knight.GetWorldPos().y < 0.f ||
+            knight.GetWorldPos().x + static_cast<float>(window_settings.width) > static_cast<float>(TWorldMap.width) * map_scale ||
+            knight.GetWorldPos().y + static_cast<float>(window_settings.height) > static_cast<float>(TWorldMap.height) * map_scale)
+        {
+            knight.UndoMovement();
+        }
 
+        for (auto prop : props)
+        {
+            if (CheckCollisionRecs(prop.GetCollisionRec(knight.GetWorldPos()), knight.GetCollisionRec()))
+            {
+                knight.UndoMovement();
+            }
+        }
+        
+
+        // DRAW
+        map_pos = Vector2Scale(knight.GetWorldPos(), -1.f);
+        DrawTextureEx(TWorldMap, map_pos, 0.f, map_scale, WHITE);
+        knight.draw();
+        for (auto prop : props)
+        {
+            prop.Render(knight.GetWorldPos());
+        }
+        
         EndDrawing();
     }
 

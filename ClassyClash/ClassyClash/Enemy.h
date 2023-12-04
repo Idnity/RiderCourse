@@ -1,7 +1,6 @@
 ﻿#pragma once
-#include <raylib.h>
 
-class Character
+class Enemy
 {
 public:
     Character(int win_width, int win_height);

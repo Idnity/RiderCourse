@@ -1,8 +1,9 @@
-﻿#include "Character.h"
+﻿#include "Enemy.h"
+
+#include <raylib.h>
 #include <raymath.h>
 
-
-Character::Character(int win_width, int win_height)
+Enemy::Enemy(int win_width, int win_height)
 {
     TCharacter = TIdle;
     TWidth = static_cast<float>(TCharacter.width) /static_cast<float>(max_frames);
@@ -14,16 +15,10 @@ Character::Character(int win_width, int win_height)
     };
 }
 
-Character::~Character()
-{
-    UnloadTexture(TIdle);
-    UnloadTexture(TRun);
-}
-
-Vector2 Character::GetWorldPos()
+Vector2 Enemy::GetWorldPos()
 { return world_pos; }
 
-Rectangle Character::GetCollisionRec()
+Rectangle Enemy::GetCollisionRec()
 {
     return Rectangle{
         screen_pos.x,
@@ -34,7 +29,7 @@ Rectangle Character::GetCollisionRec()
 }
 
 
-void Character::tick(float deltaTime)
+void Enemy::tick(float deltaTime)
 {
     world_pos_lastframe = world_pos;
     // Input direction
@@ -69,7 +64,7 @@ void Character::tick(float deltaTime)
     }
 }
 
-void Character::draw()
+void Enemy::draw()
 {
     DrawTexturePro(TCharacter,
     Rectangle{frame * TWidth, 0.f, facingDirection * TWidth, THeight},
@@ -79,7 +74,7 @@ void Character::draw()
     WHITE);
 }
 
-void Character::UndoMovement()
+void Enemy::UndoMovement()
 {
     world_pos = world_pos_lastframe;
 }
