@@ -2,84 +2,91 @@
 #include <raymath.h>
 
 
-Character::Character(int win_width, int win_height)
+Character::Character(int win_width, int win_height) :
+    window_width(win_width), window_height(win_height)
 {
-    TCharacter = TIdle;
-    TWidth = static_cast<float>(TCharacter.width) /static_cast<float>(max_frames);
-    THeight = static_cast<float>(TCharacter.height);
+    speed = 300.f;
+    TIdle = LoadTexture("characters/knight_idle_spritesheet.png");
+    TRun = LoadTexture("characters/knight_run_spritesheet.png");
+    TWeapon = LoadTexture("characters/weapon_sword.png");
     
-    screen_pos = {
-        static_cast<float>(win_width) / 2.f - (0.5f * TWidth * scale),
-        static_cast<float>(win_height) / 2.f - (0.5f * THeight * scale)
+    texture = TIdle;
+    TWidth = static_cast<float>(texture.width) /static_cast<float>(max_frames);
+    THeight = static_cast<float>(texture.height);
+};
+
+
+Vector2 Character::GetScreenPos()
+{
+    return Vector2{
+    static_cast<float>(window_width) / 2.f - (0.5f * TWidth * scale),
+    static_cast<float>(window_height) / 2.f - (0.5f * THeight * scale)
     };
 }
-
-Character::~Character()
-{
-    UnloadTexture(TIdle);
-    UnloadTexture(TRun);
-}
-
-Vector2 Character::GetWorldPos()
-{ return world_pos; }
-
-Rectangle Character::GetCollisionRec()
-{
-    return Rectangle{
-        screen_pos.x,
-        screen_pos.y,
-        TWidth * scale,
-        THeight * scale
-    };
-}
-
 
 void Character::tick(float deltaTime)
 {
-    world_pos_lastframe = world_pos;
+    if (!GetAlive()) return;
+    
     // Input direction
-    float speed{200.f};
-    Vector2 input_direction{};
+    velocity = {};
     if (IsKeyDown(KEY_A))
-        input_direction.x -= 1.f;
+        velocity.x -= 1.f;
     if (IsKeyDown(KEY_D))
-        input_direction.x += 1.f;
+        velocity.x += 1.f;
     if (IsKeyDown(KEY_W))
-        input_direction.y -= 1.f;
+        velocity.y -= 1.f;
     if (IsKeyDown(KEY_S))
-        input_direction.y += 1.f;
-    if (Vector2Length(input_direction) != 0.f)
-    {
-        world_pos = Vector2Add(world_pos, Vector2Scale(Vector2Normalize(input_direction), speed * deltaTime));
-        input_direction.x < 0.f ? facingDirection = -1.f : facingDirection = 1.f;
-        TCharacter = TRun;
-    }
-    else
-    {
-        TCharacter = TIdle;
-    }
-
-    // Animation update
-    running_time += deltaTime;
-    if (running_time >= update_time)
-    {
-        frame++;
-        running_time = 0.f;
-        if (frame > max_frames) frame = 0;
-    }
+        velocity.y += 1.f;
+    
+    BaseCharacter::tick(deltaTime);
 }
 
 void Character::draw()
 {
-    DrawTexturePro(TCharacter,
-    Rectangle{frame * TWidth, 0.f, facingDirection * TWidth, THeight},
-    Rectangle{screen_pos.x, screen_pos.y, scale * TWidth, scale * THeight},
-    {0.f,0.f},
-    0.f,
-    WHITE);
+    if (!GetAlive()) return;
+    
+    Vector2 origin{};
+    Vector2 offset{};
+    float rotation{};
+    if (facingDirection > 0.f)
+    {
+        origin = {0.f, TWeapon.height * scale};
+        offset = {35.f, 55.f};
+        weaponCollisionRec = {
+            GetScreenPos().x + offset.x,
+            GetScreenPos().y + offset.y - TWeapon.height * scale,
+            TWeapon.width * scale,
+            TWeapon.height * scale
+        };
+        rotation = IsMouseButtonDown(MOUSE_LEFT_BUTTON) ? 35.f : 0.f;
+    }
+    else
+    {
+        origin = {TWeapon.width * scale, TWeapon.height * scale};
+        offset = {25.f, 55.f};
+        weaponCollisionRec = {
+            GetScreenPos().x + offset.x - TWeapon.width * scale,
+            GetScreenPos().y + offset.y - TWeapon.height * scale,
+            TWeapon.width * scale,
+            TWeapon.height * scale
+        };
+        rotation = IsMouseButtonDown(MOUSE_LEFT_BUTTON) ? -35.f : 0.f;
+    }
+        
+    // draw sword
+    Rectangle source{0.f,0.f, static_cast<float>(TWeapon.width) * facingDirection,static_cast<float>(TWeapon.height)};
+    Rectangle dest{GetScreenPos().x + offset.x,GetScreenPos().y + offset.y, static_cast<float>(TWeapon.width) * scale, static_cast<float>(TWeapon.height) * scale};
+    DrawTexturePro(TWeapon, source, dest, origin, rotation, WHITE);
+    
+    BaseCharacter::draw();
 }
 
-void Character::UndoMovement()
+void Character::TakeDamage(float damage)
 {
-    world_pos = world_pos_lastframe;
+    health -= damage;
+    if (health < 0.f)
+    {
+        SetAlive(false);
+    }
 }
